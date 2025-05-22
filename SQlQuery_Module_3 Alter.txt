@@ -1,0 +1,498 @@
+-- ALTER a table
+	-- Add a column
+	-- Remove a column
+	-- Alter a column
+
+-- Add a column
+Id	Name	Salary (NOT NULL DEFAULT(0))
+1	Dinesh  0
+2	John	0
+3	Smith	0
+
+	-- You cannot add a new column in an existing table with a NOT NULL constraint
+	-- Whenever we add a new column to a table, the column stores NULL in it for all the existing rows
+	-- If we set it to NOT NULL, SQL Server wouldn't know as to what data should be in the new column
+	-- We can add a new column with NOT NULL, only when it has a DEFAULT constraint attached to it
+--Add a not nullable column
+ALTER TABLE DefaultTest
+ADD Salary int NOT NULL DEFAULT(0)
+
+SELECT * FROM DefaultTest
+
+-- Add a null column
+ALTER TABLE DefaultTest
+ADD Address varchar(100) -- Address is a keyword in SQL
+-- Order is a restricted keyword : So you cannot use these as a column name etc
+
+SELECT * FROM DefaultTest
+
+-- Drop a column
+	-- For columns which do not have a constraint, you can directly drop the column
+	-- For column with constraints, you need to drop the constraint first and then the column
+	-- Exceptions - (NOT NULL, IDENTITY)
+
+ALTER TABLE DefaultTest
+DROP COLUMN Address
+
+ALTER TABLE DefaultTest
+DROP COLUMN Salary
+
+ALTER TABLE DefaultTest
+DROP CONSTRAINT DF__DefaultTe__Salar__5FB337D6
+
+SELECT * FROM DefaultTest
+
+-- Alter a column
+	-- Make sure that the data in the column clearly obeys the constraint or key rules that 
+	-- you apply
+ALTER TABLE UniqueTest
+ALTER COLUMN Name varchar(120) NOT NULL
+
+ALTER TABLE NotNullTest
+ALTER COLUMN Name varchar(120) NOT NULL
+
+SELECT * FROM UniqueTest
+SELECT * FROM NotNullTest
+
+DELETE FROM NotNullTest
+WHERE Name IS NULL
+
+-- Replacement of Alt+F1
+sp_help Employee
+
+--== Temporary tables
+	-- Temporary tables are temp storage units to store and transform data from the source before 
+		-- it is moved to the destination/displayed on the application
+	-- The temp tables are created in the tempdb
+	-- Advantages : 
+		-- The source and destination table have complete availability
+		-- Specific to the creator
+	-- Types of Temp Tables : 
+		-- Local Temp Table
+		-- Global Temp Table
+
+-- Local Temp Table
+	-- The local temp table is identified by a single # before the name of the table
+	-- You can create indexes, keys, constraints exactly like a physical table in the DB
+	-- The scope of a local temp table is only in the session/query window where it is created
+	-- We can create n number of local temp tables with the same name in different sessions
+	-- We can either manually drop the local temp table 
+		-- or it gets dropped automatically once the session is closed
+
+CREATE TABLE #LocalTempTable
+(
+	Id int
+	, Name varchar(100)
+)
+
+INSERT INTO #LocalTempTable(Id,Name)
+SELECT 1,'Dinesh' UNION ALL
+SELECT 2,'John' UNION ALL
+SELECT 3,'Steve' 
+
+SELECT * FROM #LocalTempTable AS x
+INNER JOIN Employee AS emp ON emp.EmployeeId = x.Id
+
+DROP TABLE #LocalTempTable
+
+-- Global Temp Table
+	-- The global temp table is identified by double ## before the name of the table
+	-- You can create indexes, keys, constrints exactly like a physical table in the DB
+	-- The scope of a global temp table is across all the sessions and for all users who 
+		--have access to the database
+	-- We can either manually drop the global temp table from any session
+		-- or it gets dropped automatically once the parent session is closed
+
+CREATE TABLE ##GlobalTempTable
+(
+	Id int
+	, Name varchar(100)
+)
+
+INSERT INTO ##GlobalTempTable(Id,Name)
+SELECT 1,'Dinesh' UNION ALL
+SELECT 2,'John' UNION ALL
+SELECT 3,'Steve' 
+
+SELECT * FROM ##GlobalTempTable
+	
+DROP TABLE ##GlobalTempTable
+
+-- Copying the data from Source to the temp table
+SELECT *
+INTO #EmployeeData
+FROM Employee
+
+SELECT * FROM #EmployeeData AS x
+
+DROP TABLE #EmployeeData
+
+-- Table Variable
+	-- Scope of a variable is only inside the query/batch where it is created/initialized
+	-- Batch is a single or multiple line of SQL Statements that are run together
+DECLARE @id int--, @Name varchar(100) --= 5 -- Integer variable
+SET @id = 5
+SELECT @id AS Id
+DECLARE @name varchar(100) = 'Dinesh' -- Varchar variable
+SELECT @name AS Name
+
+DECLARE @tableVariable TABLE -- Table Variable
+(
+	id int
+	, Name varchar(100)
+)
+INSERT INTO @tableVariable(id,name)
+SELECT 1,'Dinesh' UNION ALL
+SELECT 2,'John' UNION ALL
+SELECT 3,'Steve'
+
+SELECT * FROM @tableVariable AS t
+SELECT * FROM @tableVariable AS t
+SELECT * FROM @tableVariable AS t
+
+/*
+--== Functions
+	-- It is a database object which has a set of SQL Statements that accepts input 
+		-- parameters and returns the result
+	-- At a given point in time, function will definitely return something
+	-- It can be a scalar value or a table valued
+	-- We cannot use a function to Insert, Update or Delete records from physical
+		-- tables in the database
+
+Advantages : 
+	1. Reusuability aspect - We are able to reuse the encapsulated logic whereever required
+	2. Maintainability - We no longer have to maintain the same piece of code at different places
+
+Types of Functions
+1. System Defined Functions : 
+	a. Scalar Functions
+	b. Aggregate Functions
+2. User Defined Functions(UDF) : 
+	a. Scalar Functions
+	b. Table-Valued Functions
+		i. Inline table-Valued function
+		ii. Multiline table-valued function
+*/
+--== 1. System Defined Functions
+--==	a. Scalar Functions
+	-- These functions operate on none, one or more input values and returns a scalar output value
+--== DateTime Functions
+	-- The date time functions are really helpful when you want to build date range metrics
+SELECT GETDATE() -- This function returns the current server date time
+SELECT GETUTCDATE() -- This gets us the UTC date and time(Universal Time Coordinated/Greenwich Mean Time)
+SELECT GETDATE() + 2 -- This will add 2 days to my current date
+SELECT GETDATE() - 2 -- This will subtract 2 days from my current date
+SELECT DATEADD(hour,2,GETDATE()) -- This will add 2 hours to now
+SELECT DATEADD(hour,-2,GETDATE()) -- This will deduct 2 hours from the current date time
+SELECT DATEADD(year,2,GETDATE()) -- This adds 2 years to the current date time
+SELECT DATEADD(year,-2,GETDATE()) -- This will deduct 2 years from the current date time
+SELECT DATEADD(month,2,GETDATE()) -- This adds 2 months to the current date time
+SELECT DATEADD(month,2,DATEADD(hour,3,GETDATE())) -- This adds 3 hours and 2 months to the current date
+SELECT YEAR(GETDATE()) -- Returns the year of the specified date
+SELECT MONTH(GETDATE()) -- Returns the month of the specified date
+SELECT DATEPART(day,GETDATE()) -- Returns the date part of the current datetime
+SELECT DATEPART(hour,GETDATE()) -- Returns the hour part of current datetime
+SELECT DATEPART(minute,GETDATE())
+SELECT DATEPART(year,GETDATE())
+SELECT DATEPART(month,GETDATE())
+SELECT DATEDIFF(day,'2022-09-01','2022-09-07') -- Returns the difference in days between the start and end date
+SELECT DATEDIFF(hour,'2022-09-01','2022-09-07')
+SELECT DATEDIFF(minute,'2022-09-01 20:00','2022-09-01 23:00')
+SELECT DATENAME(MONTH,GETDATE())
+SELECT DATENAME(WEEKDAY, GETDATE())
+
+--Link to convert datetime to multiple different formats
+--https://www.mssqltips.com/sqlservertip/1145/date-and-time-conversions-using-sql-server/
+
+-- Usage of DateDiff
+SELECT *
+	, YEAR(dob.EmployeeDOB) AS YearOfBirth
+	, DATEDIFF(YEAR,dob.EmployeeDOB,GETDATE()) AS AgeInYears
+FROM Employee AS emp
+INNER JOIN EmployeeDOB AS dob ON dob.EmployeeID = emp.EmployeeID
+
+-- Filtering by year
+SELECT *
+FROM EmployeeDOB
+WHERE YEAR(EmployeeDOB) >= 2000
+
+-- Fetch the Sales from last 2 days
+SELECT *
+FROM Sales
+WHERE SalesDate >= GETDATE() - 2
+
+-- To get sales previous year and First quarter
+
+SELECT *
+FROM AdventureWorks2019.Sales.SalesOrderHeader
+WHERE YEAR(OrderDate) = YEAR(GETDATE())-1
+AND MONTH(OrderDate) IN (1,2,3)
+
+-- People born between March and September
+SELECT * --,YEAR(EmployeeDOB) AS YearDOB,MONTH(EmployeeDOB) AS MonthDOB
+FROM EmployeeDOB
+WHERE MONTH(EmployeeDOB) BETWEEN 3 AND 9
+
+-- To identify all employees who have DOB in the current month
+SELECT *--,YEAR(EmployeeDOB) AS YearDOB
+FROM EmployeeDOB
+WHERE MONTH(EmployeeDOB) = MONTH(GETDATE())
+
+--== String Functions in SQL
+SELECT UPPER('dinesh') -- Converts the text to upper case
+SELECT LOWER('Dinesh') -- Returns the text in lower case
+SELECT LEN('   dinesh123   ') AS LengthOfString -- Returns the length of the text
+SELECT 'Dinesh' + ' ' + 'Kumar'
+SELECT LEFT('dinesh',2) -- Returns the 2 characters for the left of the string
+SELECT RIGHT('dinesh',4) -- Returns the 4 characters from the right of the string
+SELECT TRIM('           dinesh         kumar         ')
+--O/P'dinesh         kumar'
+SELECT REPLACE('dinesh','nes','X') AS OP -- Replacing a part of the string with another value
+SELECT REVERSE('dinesh') -- Reverses a text
+SELECT SUBSTRING('dinesh',3,10) -- Returns the part of text from starting position to the number of characters specified
+SELECT CHARINDEX('i','dinesh')-- Tries to search for the expression and returns its first location
+SELECT CONCAT('Dinesh',NULL,'Panda') -- Concatenating multiple values as supplied
+
+-- Extract Domain name from the email address
+DECLARE @Email varchar(100) = 'dineshkumar@gmail.com'
+SELECT SUBSTRING(@Email,1,CHARINDEX('@',@Email)-1) AS UserName
+SELECT SUBSTRING(@Email,CHARINDEX('@',@Email)+1,LEN(@Email)) AS DomainName
+
+-- Use case of string functions
+CREATE TABLE EmpTbl(ID int, EmailID varchar(200))
+INSERT INTO EmpTbl(ID,EmailID)
+SELECT 1,'dinesh@gmail.com' UNION ALL
+SELECT 2,'john@gmail.com' UNION ALL
+SELECT 3,'smith@microsoft.com' UNION ALL
+SELECT 4,'sumit@yahoo.com' UNION ALL
+SELECT 5,'peter@gmail.com'
+
+SELECT *
+	, SUBSTRING(EmailID,1,CHARINDEX('@',EmailID)-1) AS UserName
+	, SUBSTRING(EmailID,CHARINDEX('@',EmailID) + 1,LEN(EmailID)) AS DomainName
+FROM EmpTbl
+
+-- Important Scalar Functions
+-- Converting Integer to string
+SELECT 'Dinesh' + ' Kumar'
+SELECT 21+21 -- 42 (Numbers)
+SELECT '21'+'21' -- 2121 (Text)
+SELECT 'Dinesh' + 21
+
+SELECT EmployeeID, Address + City + State + CAST(PinCode AS varchar) AS CompleteAddress
+FROM Employee
+
+SELECT 'Dinesh ' + CAST(21 AS varchar) -- ANSI Standard SQL Function
+SELECT 'Dinesh ' + CONVERT(varchar,21) -- Specific to TSQL
+
+SELECT ISNULL(NULL,'The first value is NULL')
+
+--PhoneNumber
+SELECT EmployeeID, EmployeeFirstName, ISNULL(OfficePhone, HomePhone) AS PhoneNumber
+FROM Employee
+
+-- NULL values can never be compared in SQL Server
+SELECT ID,Name FROM UniqueTest
+--WHERE Id IS NULL -- Extract the null records
+WHERE ISNULL(ID,0) < 2
+
+SELECT * FROM UniqueTest
+
+--==	b. Aggregate Functions
+	-- These functions operate on a collection of values and returns a single value
+
+SELECT MAX(Salary) AS MaximumSalary FROM Employee
+WHERE Address = 'India'
+SELECT MIN(Salary) AS MinimumSalary FROM Employee
+SELECT AVG(Salary) FROM Employee
+SELECT SUM(Salary)/COUNT(EmployeeID) FROM Employee
+
+--== User Defined Functions(UDF) : 
+-- Types of User Defined Functions : 
+	-- 1. Scalar valued Function
+	-- 2. Table Valued Function
+		-- a. Inline/Single Line Table Valued Function
+		-- b. Multiline/Multi Statement Table Valued Function
+
+-- 1. Scalar Valued UD Function : 
+	-- Functions which we write, that accepts input paramters and returns a single value
+	-- It can return any data type
+	-- A single function at a single point in time will return only one data type
+
+	--Alt+F1 - To see the metadata of your object
+CREATE OR ALTER FUNCTION fn_GetEmployeeFullName
+(
+	@FirstName varchar(50) 
+	, @LastName varchar(50) 
+)
+RETURNS varchar(101)
+AS
+BEGIN
+	RETURN (CONCAT(TRIM(@FirstName) , ' ' , TRIM(@LastName)))
+END
+
+--== Call Scalar Valued User Defined Function
+-- You need to specify the dbo(schema name) before your UD Scalar valued Function call so as to ensure that the 
+	--optimizer tries to look into the list of User Defined Functions and not in the System Defined Functions
+SELECT dbo.fn_GetEmployeeFullName('John','Smith') AS FullName
+SELECT dbo.fn_GetEmployeeFullName('Dinesh','Kumar') AS FullName
+
+CREATE OR ALTER FUNCTION fn_AddNumbers
+(
+	@number1 int
+	, @number2 int
+)
+RETURNS int
+AS
+BEGIN
+	RETURN(ISNULL(@number1,0)+ISNULL(@number2,0))
+END
+
+-- The dbo is mandatory during the call of a scalar valued function because if we don't specfiy it, SQL tries to 
+	-- search for the function in the System Defined FUnctions list
+SELECT dbo.fn_AddNumbers(1,2)
+SELECT dbo.fn_AddNumbers(10,15)
+SELECT dbo.fn_AddNumbers(10,NULL)
+
+SELECT * FROM dbo.Employee
+SELECT * FROM Employee
+
+-- Use Scalar Valued Functions in a SELECT query
+SELECT EmployeeID, EmployeeFirstName, EmployeeLastName
+	, dbo.fn_GetEmployeeFullName(EmployeeFirstName,EmployeeLastName) AS FullName
+FROM Employee AS emp
+WHERE dbo.fn_GetEmployeeFullName(EmployeeFirstName,EmployeeLastName) = 'Santosh Kumar'
+
+-- 2.a) Inline/Single Line table valued function
+	-- Returns a table as a result of actions from given input parameters
+	-- The value of table should be derived from a single SELECT statement
+
+CREATE OR ALTER FUNCTION fn_GetEmployeeDetails
+(
+	@Address varchar(100)
+)
+RETURNS TABLE
+AS
+	RETURN (SELECT dbo.fn_GetEmployeeFullName(EmployeeFirstName,EmployeeLastName) AS FullName 
+				, Salary
+				, Address
+				, EmployeeDOB
+			FROM Employee AS emp
+			LEFT JOIN EmployeeDOB AS edob ON edob.EmployeeID = emp.EmployeeId
+			WHERE emp.Address = @Address
+		)
+
+--== Call table valued function
+SELECT * FROM fn_GetEmployeeDetails('US')
+SELECT * FROM Employee WHERE EmployeeID = 7
+
+-- 2.b) Multi Line/Multi Statement table valued function
+	-- Returns a table variable as a result of actions performed on the i/p parameters
+	-- The design of table is explicity declared and defined in the RETURNS section
+	-- We can derive the data/table using multiple SQL statements
+CREATE OR ALTER FUNCTION fn_GetEmployeeDetailsML
+(
+	@EmployeeID int
+)
+RETURNS @Emp TABLE
+	(
+		EmployeeId int
+		, EmployeeFullName varchar(101)
+		, Salary int
+	)
+AS
+BEGIN
+	INSERT INTO @Emp(EmployeeId,EmployeeFullName,Salary)
+	SELECT emp.EmployeeID, dbo.fn_GetEmployeeFullName(EmployeeFirstName,EmployeeLastName),Salary
+	FROM Employee As emp
+	WHERE emp.EmployeeID <> @EmployeeID
+
+	UPDATE @Emp
+	SET Salary = 5000
+	WHERE EmployeeId IN (2,5)
+
+	DELETE FROM @Emp
+	WHERE EmployeeId IN (6,3)
+
+	INSERT INTO @Emp
+	SELECT 100,'Dinesh Kumar', 2000
+
+	RETURN
+END
+
+-- When Alt+F1 shortcut doesnt work, use sp_help Employee
+
+SELECT * FROM fn_GetEmployeeDetailsML(4)
+SELECT * FROM Employee	
+
+-- Using the table valued User defined functions in JOINS
+SELECT *
+FROM fn_GetEmployeeDetailsML(4) AS fn
+INNER JOIN EmployeeDOB AS emp ON fn.EmployeeID = emp.EmployeeId
+
+-- To view your results in Text, use Ctrl+T, to view it in Grid use Ctrl+D
+sp_helptext fn_GetEmployeeDetailsML
+
+-- Remove a function from the DB
+DROP FUNCTION fn_GetEmployeeDetailsML
+
+SELECT * FROM Employee
+
+-- CASE Statement
+	-- Case is a typical conditional statement that is used during retrieval of the data
+
+SELECT *
+	, CASE WHEN EmployeeId % 2 = 1 THEN 'Odd' ELSE 'Even' END AS EvenOROdd
+FROM Employee
+
+SELECT 13%4
+
+SELECT *
+	, CASE WHEN Salary <= 1000 THEN '0 to 1000'
+		WHEN Salary > 1000 AND Salary <=3000 THEN '1000 to 3000'
+		WHEN Salary >3000 AND Salary <= 4000 THEN '3000 to 4000'
+		ELSE '> 4000' END AS SalaryGrade
+FROM Employee
+
+SELECT * FROM Employee
+
+SELECT *
+	, IIF(EmployeeId % 2 = 1,'EID is Odd','EID is Even') AS IIFCondition
+FROM Employee
+
+-- Program flow of Query Executions
+IF(1=2)
+	SELECT 'First Statement'
+ELSE IF(2=3)
+	SELECT 'Second Statement'
+ELSE
+	SELECT 'Else Statement'
+
+IF (1=2)
+BEGIN -- You use BEGIN and END when you want to execute more than one statement inside your condition
+	SELECT 'First'
+	SELECT 'Second'
+END
+
+IF NOT EXISTS(SELECT * FROM Employee WHERE EmployeeId = 9)
+BEGIN
+	INSERT INTO Employee(EmployeeId,EmployeeFirstName,EmployeeLastName,Salary,Address)
+	SELECT 9,'Smith','Owens',2000,'US'
+END
+ELSE
+BEGIN
+	SELECT 'ID Already Exists !!! Choose a new ID.'
+END
+
+	SELECT * FROM Employee
+
+IF EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS
+	WHERE TABLE_NAME = 'Employee' AND TABLE_SCHEMA = 'dbo' AND Column_Name = 'Address')
+BEGIN 
+	SELECT 'Column Already Exists'	
+END
+ELSE
+	ALTER TABLE dbo.Employee
+	ADD Address varchar(100)
+
+SELECT * FROM INFORMATION_SCHEMA.COLUMNS
